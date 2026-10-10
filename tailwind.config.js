@@ -22,7 +22,9 @@ export default {
       fontFamily: {
         cyber: ['Orbitron', 'sans-serif'],
         tech: ['Rajdhani', 'sans-serif'],
-        sans: ['Inter', 'system-ui', 'sans-serif']
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        google: ['Outfit', 'Plus Jakarta Sans', 'sans-serif'],
+        brand: ['Outfit', 'system-ui', 'sans-serif']
       },
       animation: {
         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',

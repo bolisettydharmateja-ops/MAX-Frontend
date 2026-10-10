@@ -22,4 +22,6 @@ max-ai.zip
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
+# Environment
+.env
+.env*.local

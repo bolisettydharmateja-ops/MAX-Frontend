@@ -1,14 +1,50 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Volume2, Globe } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Volume2,
+  Globe,
+  User,
+  ChevronDown,
+  LogOut,
+  Settings,
+  LogIn
+} from 'lucide-react';
 import { getLanguageByCode } from '../utils/languages';
+import { useAuth } from '../context/AuthContext';
+import { playSound } from '../utils/audio';
 
 export default function HeaderBadge({
   onVoiceDateTime = () => {},
   currentLang = 'en-US',
-  onOpenLanguageModal = null
+  onOpenLanguageModal = null,
+  onOpenProfile = null,
+  onOpenSettings = null,
+  onOpenAuth = null
 }) {
+  const { currentUser, logout, isAuthenticated } = useAuth();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
   const langObj = getLanguageByCode(currentLang);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  const handleLogout = () => {
+    playSound('activate');
+    setIsDropdownOpen(false);
+    logout();
+    onOpenAuth && onOpenAuth('login');
+  };
+
+  const displayName = currentUser?.fullName?.split(' ')[0] || currentUser?.username || 'Teja';
 
   return (
     <header className="w-full flex flex-col sm:flex-row items-center sm:items-start justify-between px-6 sm:px-10 pt-6 z-20 pointer-events-auto gap-4">
@@ -46,7 +82,7 @@ export default function HeaderBadge({
         </div>
 
         {/* Text details */}
-        <div className="flex flex-col">
+        <div className="flex flex-col text-left">
           <div className="flex items-center gap-2">
             <h1 className="font-cyber font-extrabold text-lg sm:text-xl tracking-wider text-white drop-shadow-[0_0_10px_rgba(0,243,255,0.6)]">
               MAX AI
@@ -65,14 +101,14 @@ export default function HeaderBadge({
         </div>
       </motion.div>
 
-      {/* Top Right: Voice Date & Time Action Button + Online Badge */}
+      {/* Top Right: Header Actions + User Profile Menu */}
       <motion.div
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5 }}
         className="flex items-center gap-2.5 sm:gap-3 flex-wrap justify-center sm:justify-end"
       >
-        {/* Voice Date & Time Button (Voices aloud on click) */}
+        {/* Voice Date & Time Button */}
         <motion.button
           whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.96 }}
@@ -107,6 +143,99 @@ export default function HeaderBadge({
               <span>{langObj.flag}</span>
               <span className="hidden sm:inline">{langObj.name}</span>
             </span>
+          </motion.button>
+        )}
+
+        {/* ======================================================== */}
+        {/* USER PROFILE DROPDOWN MENU (From Reference Image)       */}
+        {/* ======================================================== */}
+        {isAuthenticated && currentUser ? (
+          <div ref={dropdownRef} className="relative">
+            <motion.button
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => {
+                playSound('click');
+                setIsDropdownOpen(!isDropdownOpen);
+              }}
+              className="px-3.5 py-2 rounded-2xl glass-panel-interactive border border-cyan-400/50 hover:border-cyan-300 shadow-[0_0_20px_rgba(0,243,255,0.25)] flex items-center gap-2.5 transition-all"
+            >
+              <div className="w-7 h-7 rounded-full bg-cyan-500/20 border border-cyan-400/50 flex items-center justify-center text-cyan-300 shadow-[0_0_10px_#00f3ff]">
+                <User className="w-4 h-4" />
+              </div>
+              <span className="font-tech font-bold text-sm text-white tracking-wide">
+                {displayName}
+              </span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-cyan-300 transition-transform duration-200 ${
+                  isDropdownOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </motion.button>
+
+            {/* Dropdown Menu (Matching Reference Image) */}
+            <AnimatePresence>
+              {isDropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ duration: 0.18 }}
+                  className="absolute right-0 top-full mt-2 w-48 rounded-2xl glass-panel border border-cyan-400/40 shadow-[0_10px_35px_rgba(0,243,255,0.25)] py-2 z-50 text-left overflow-hidden"
+                >
+                  {/* Dropdown Item 1: Profile */}
+                  <button
+                    onClick={() => {
+                      playSound('click');
+                      setIsDropdownOpen(false);
+                      onOpenProfile && onOpenProfile();
+                    }}
+                    className="w-full px-4 py-2.5 flex items-center gap-3 text-xs font-tech font-bold text-slate-200 hover:text-white hover:bg-cyan-500/15 transition-colors"
+                  >
+                    <User className="w-4 h-4 text-cyan-400" />
+                    <span>Profile</span>
+                  </button>
+
+                  {/* Dropdown Item 2: Settings */}
+                  <button
+                    onClick={() => {
+                      playSound('click');
+                      setIsDropdownOpen(false);
+                      onOpenSettings && onOpenSettings();
+                    }}
+                    className="w-full px-4 py-2.5 flex items-center gap-3 text-xs font-tech font-bold text-slate-200 hover:text-white hover:bg-cyan-500/15 transition-colors"
+                  >
+                    <Settings className="w-4 h-4 text-cyan-400" />
+                    <span>Settings</span>
+                  </button>
+
+                  <div className="border-t border-slate-700/60 my-1" />
+
+                  {/* Dropdown Item 3: Logout */}
+                  <button
+                    onClick={handleLogout}
+                    className="w-full px-4 py-2.5 flex items-center gap-3 text-xs font-tech font-bold text-red-300 hover:text-red-200 hover:bg-red-950/40 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4 text-red-400" />
+                    <span>Logout</span>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        ) : (
+          /* Sign In Button for unauthenticated state */
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            onClick={() => {
+              playSound('click');
+              onOpenAuth && onOpenAuth('login');
+            }}
+            className="px-4 py-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-slate-950 font-tech font-bold text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2 shadow-[0_0_20px_#00f3ff] transition-all"
+          >
+            <LogIn className="w-4 h-4" />
+            <span>Sign In</span>
           </motion.button>
         )}
 

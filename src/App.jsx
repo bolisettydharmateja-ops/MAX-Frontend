@@ -12,6 +12,9 @@ import TaskModal from './components/TaskModal';
 import SettingsModal from './components/SettingsModal';
 import SearchModal from './components/SearchModal';
 import VoiceModal from './components/VoiceModal';
+import ProfileModal from './components/ProfileModal';
+import AuthModal from './components/AuthModal';
+import { useAuth } from './context/AuthContext';
 import {
   playSound,
   speakWithMAX,
@@ -33,8 +36,10 @@ import {
 } from './utils/languages';
 
 export default function App() {
+  const { currentUser, isAuthenticated } = useAuth();
   const [aiState, setAiState] = useState('IDLE'); // IDLE, LISTENING, THINKING, SPEAKING
-  const [activeModal, setActiveModal] = useState(null); // 'chat' | 'search' | 'tasks' | 'settings' | null
+  const [activeModal, setActiveModal] = useState(null); // 'chat' | 'search' | 'tasks' | 'settings' | 'profile' | 'auth' | null
+  const [authModalView, setAuthModalView] = useState('login');
   const [searchQuery, setSearchQuery] = useState('');
   const [completedTaskNotification, setCompletedTaskNotification] = useState(null);
 
@@ -44,7 +49,20 @@ export default function App() {
   });
 
   const activeLangObj = getLanguageByCode(currentLang);
-  const [bubbleMessage, setBubbleMessage] = useState(activeLangObj.greeting);
+  const [bubbleMessage, setBubbleMessage] = useState(() => {
+    return currentUser
+      ? `Hello, ${currentUser.fullName?.split(' ')[0] || currentUser.username}! How can I help you today?`
+      : activeLangObj.greeting;
+  });
+
+  useEffect(() => {
+    if (currentUser) {
+      const firstName = currentUser.fullName?.split(' ')[0] || currentUser.username || 'Teja';
+      setBubbleMessage(`Hello, ${firstName}! How can I help you today?`);
+    } else {
+      setBubbleMessage(activeLangObj.greeting);
+    }
+  }, [currentUser, currentLang]);
 
   // Appearance Theme state: 'dark' | 'light'
   const [theme, setTheme] = useState(() => {
@@ -545,6 +563,21 @@ export default function App() {
             }
           } else if (lower.includes('task') || lower.includes('todo')) {
             answer = activeLangObj.tasksMsg(pendingTaskCount);
+          } else if (
+            lower.startsWith('search') ||
+            lower.startsWith('find') ||
+            lower.startsWith('google') ||
+            lower.startsWith('ask max')
+          ) {
+            const cleanQuery = userPrompt
+              .replace(/^(search for|search|find|google|ask max ai|ask max)\s*/i, '')
+              .trim();
+            setSearchQuery(cleanQuery);
+            setActiveModal('search');
+            answer = cleanQuery
+              ? `Opening MAX AI Search for "${cleanQuery}"...`
+              : 'Opening MAX AI Search...';
+            playSound('activate');
           } else if (lower.includes('who are you') || lower.includes('name')) {
             answer = activeLangObj.whoMsg;
           } else if (userPrompt) {
@@ -585,7 +618,9 @@ export default function App() {
   };
 
   const handleSideMenuSelect = (actionId) => {
-    if (actionId === 'chat') {
+    if (actionId === 'home') {
+      setActiveModal(null);
+    } else if (actionId === 'chat') {
       setActiveModal('chat');
     } else if (actionId === 'search') {
       setSearchQuery('');
@@ -594,6 +629,11 @@ export default function App() {
       setActiveModal('tasks');
     } else if (actionId === 'settings') {
       setActiveModal('settings');
+    } else if (actionId === 'profile') {
+      setActiveModal('profile');
+    } else if (actionId === 'auth') {
+      setAuthModalView('login');
+      setActiveModal('auth');
     }
   };
 
@@ -662,11 +702,17 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* 2. Top Header Bar: Upward corner has Voice Date & Time button and Online status */}
+      {/* 2. Top Header Bar: Upward corner has Voice Date & Time button and User Profile Dropdown */}
       <HeaderBadge
         onVoiceDateTime={handleVoiceDateTime}
         currentLang={currentLang}
         onOpenLanguageModal={() => setActiveModal('settings')}
+        onOpenProfile={() => setActiveModal('profile')}
+        onOpenSettings={() => setActiveModal('settings')}
+        onOpenAuth={(view = 'login') => {
+          setAuthModalView(view);
+          setActiveModal('auth');
+        }}
       />
 
       {/* 3. Main Stage: Strict 3-Column Grid ensuring MAX AI is in Dead Center */}
@@ -739,11 +785,35 @@ export default function App() {
         initialQuery={searchQuery}
         currentLang={currentLang}
         selectedVoiceId={selectedVoiceId}
+        theme={theme}
+        aiState={aiState}
       />
 
       <VoiceModal
         isOpen={activeModal === 'chat'}
         onClose={() => setActiveModal(null)}
+      />
+
+      {/* 7. User Profile Modal */}
+      <ProfileModal
+        isOpen={activeModal === 'profile'}
+        onClose={() => setActiveModal(null)}
+        onOpenSettings={() => setActiveModal('settings')}
+        onOpenAuth={(view = 'login') => {
+          setAuthModalView(view);
+          setActiveModal('auth');
+        }}
+      />
+
+      {/* 8. Modern Futuristic Authentication & Google OAuth Modal */}
+      <AuthModal
+        isOpen={activeModal === 'auth'}
+        onClose={() => setActiveModal(null)}
+        initialView={authModalView}
+        onSuccess={(user) => {
+          const firstName = user.fullName?.split(' ')[0] || user.username || 'Teja';
+          setBubbleMessage(`Welcome back, ${firstName}! How can I help you today?`);
+        }}
       />
     </div>
   );
