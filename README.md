@@ -59,7 +59,7 @@ A cyberpunk-inspired next-generation AI assistant interface featuring real-time 
    ```bash
    npm run dev
    ```
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
+   Open [https://max-frontend.vercel.app/](https://max-frontend.vercel.app/) in your browser.
 
 4. **Build for production**:
    ```bash
